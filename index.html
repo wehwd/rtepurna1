@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<title>128 Milyar Dolar Oyunu</title>
+<style>
+  body { margin: 0; background: white; overflow: hidden; }
+  canvas { display: block; margin: auto; background: white; }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 36px;
+    opacity: 1;
+    transition: opacity 2s;
+    z-index: 10;
+    flex-direction: column;
+  }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <img src="logo.png" style="max-width:200px; margin-bottom: 20px;">
+  <div>Hedef 128 Milyar Dolar<br>Hadi Let's Go</div>
+</div>
+
+<canvas id="game" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let charImg = new Image();
+charImg.src = 'karakter.png';
+
+let itemImg = new Image();
+itemImg.src = 'cisim.png';
+
+let character = {
+  x: canvas.width / 2 - 25,
+  y: canvas.height - 60,
+  width: 50,
+  height: 50
+};
+
+let items = [];
+const itemCount = 5;
+const itemSpeed = 3;
+let score = 0;
+
+function spawnItems() {
+  for(let i=0; i<itemCount; i++) {
+    items.push({
+      x: Math.random() * (canvas.width - 30),
+      y: Math.random() * -600,
+      width: 30,
+      height: 30
+    });
+  }
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Hareket eden cisimler
+  items.forEach(item => {
+    item.y += itemSpeed;
+    if(item.y > canvas.height) {
+      item.y = Math.random() * -600;
+      item.x = Math.random() * (canvas.width - item.width);
+    }
+    ctx.drawImage(itemImg, item.x, item.y, item.width, item.height);
+
+    // Çarpışma kontrolü
+    if(item.x < character.x + character.width &&
+       item.x + item.width > character.x &&
+       item.y < character.y + character.height &&
+       item.y + item.height > character.y) {
+      score++;
+      item.y = Math.random() * -600;
+      item.x = Math.random() * (canvas.width - item.width);
+    }
+  });
+
+  // Karakteri çiz
+  ctx.drawImage(charImg, character.x, character.y, character.width, character.height);
+
+  // Skoru yaz
+  ctx.fillStyle = "black";
+  ctx.font = "24px Arial";
+  ctx.fillText("Skor: " + score, 10, 30);
+}
+
+// Fare hareketi ile karakter kontrolü
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  character.x = e.clientX - rect.left - character.width / 2;
+  if(character.x < 0) character.x = 0;
+  if(character.x > canvas.width - character.width) character.x = canvas.width - character.width;
+});
+
+// Mobil dokunmatik için tıklama hareketi (karaktere tıklayınca ileri hareket ettiriyor)
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const touchX = e.touches[0].clientX - rect.left;
+  character.x = touchX - character.width / 2;
+});
+
+function gameLoop() {
+  update();
+  requestAnimationFrame(gameLoop);
+}
+
+// Açılış ekranı 3 saniye sonra gizle
+window.onload = () => {
+  spawnItems();
+  setTimeout(() => {
+    document.getElementById('overlay').style.opacity = 0;
+    setTimeout(() => {
+      document.getElementById('overlay').style.display = 'none';
+      gameLoop();
+    }, 2000);
+  }, 3000);
+};
+</script>
+
+</body>
+</html>
