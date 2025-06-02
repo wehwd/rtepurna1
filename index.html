@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8" />
-    <title>RTEpurnafromMexlip</title>
+    <title>RTEpurna</title>
     <style>
         body {
             margin: 0;
@@ -147,24 +147,34 @@
             ctx.fillText('Skor: ' + skor, 20, 40);
         }
 
-        function oyunDongusu() {
-            if (!oyunBasladi) return;
-            cisimleriGuncelle();
-            oyunCiz();
-            requestAnimationFrame(oyunDongusu);
+      let sonZaman = performance.now();
+
+function oyunDongusu() {
+    if (!oyunBasladi) return;
+
+    const suankiZaman = performance.now();
+    const delta = (suankiZaman - sonZaman) / 1000; // saniye cinsinden fark
+    sonZaman = suankiZaman;
+
+    // cisimleri delta zamanına göre güncelle
+    for (let i = cisimler.length - 1; i >= 0; i--) {
+        cisimler[i].y += cisimler[i].speed * 60 * delta;  // 60 çarpanı fps bazlı ayar için
+        if (cisimler[i].y > height) {
+            cisimler.splice(i, 1);
+        } else if (cisimler[i].x < karakter.x + karakter.width &&
+                   cisimler[i].x + cisimler[i].width > karakter.x &&
+                   cisimler[i].y < karakter.y + karakter.height &&
+                   cisimler[i].y + cisimler[i].height > karakter.y) {
+            skor++;
+            cisimler.splice(i, 1);
+            skorGuncelle();
         }
+    }
 
-        // Fare kontrolü
-        canvas.addEventListener('mousemove', (e) => {
-            karakter.x = e.clientX - karakter.width / 2;
-        });
+    oyunCiz();
+    requestAnimationFrame(oyunDongusu);
+}
 
-        // Dokunmatik kontrolü
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            karakter.x = touch.clientX - karakter.width / 2;
-        }, { passive: false });
 
         // Overlay ve açılış ekranları
         const overlay = document.getElementById('overlay');
