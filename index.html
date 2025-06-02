@@ -42,7 +42,7 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        let karakter = { x: canvas.width / 2, y: canvas.height - 100, width: 70, height: 100 };
+        let karakter = { x: canvas.width / 2, y: canvas.height - 100, width: 120, height: 150 };
         let skor = 0;
         let cisimler = [];
 
@@ -55,8 +55,8 @@
             cisimler.push({
                 x: Math.random() * (canvas.width - 30),
                 y: 0,
-                width: 30,
-                height: 30,
+                width: 60,
+                height: 60,
                 speed: 2 + Math.random() * 2
             });
         }
