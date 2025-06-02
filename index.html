@@ -1,134 +1,142 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<title>128 Milyar Dolar Oyunu</title>
-<style>
-  body { margin: 0; background: white; overflow: hidden; }
-  canvas { display: block; margin: auto; background: white; }
-  #overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: black;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 36px;
-    opacity: 1;
-    transition: opacity 2s;
-    z-index: 10;
-    flex-direction: column;
-  }
-</style>
+    <meta charset="UTF-8">
+    <title>128 Milyar Dolar Oyunu</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            opacity: 1;
+            transition: opacity 2s;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
+    <div id="overlay">
+        <img id="logo" src="logo.png" style="max-width: 80%; display: none;">
+        <div id="letsgo" style="display: none;">128 Milyar Dolar<br>Hadi Let's Go!</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-<div id="overlay">
-  <img src="logo.png" style="max-width:200px; margin-bottom: 20px;">
-  <div>Hedef 128 Milyar Dolar<br>Hadi Let's Go</div>
-</div>
+        let karakter = { x: canvas.width / 2, y: canvas.height - 100, width: 50, height: 50 };
+        let skor = 0;
+        let cisimler = [];
 
-<canvas id="game" width="800" height="600"></canvas>
+        const karakterImg = new Image();
+        karakterImg.src = 'karakter.png';
+        const cisimImg = new Image();
+        cisimImg.src = 'cisim.png';
 
-<script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+        function yeniCisim() {
+            cisimler.push({
+                x: Math.random() * (canvas.width - 30),
+                y: 0,
+                width: 30,
+                height: 30,
+                speed: 3 + Math.random() * 3
+            });
+        }
 
-let charImg = new Image();
-charImg.src = 'karakter.png';
+        function cisimleriGuncelle() {
+            for (let i = cisimler.length - 1; i >= 0; i--) {
+                cisimler[i].y += cisimler[i].speed;
+                if (cisimler[i].y > canvas.height) {
+                    cisimler.splice(i, 1);
+                } else if (cisimler[i].x < karakter.x + karakter.width &&
+                           cisimler[i].x + cisimler[i].width > karakter.x &&
+                           cisimler[i].y < karakter.y + karakter.height &&
+                           cisimler[i].y + cisimler[i].height > karakter.y) {
+                    skor++;
+                    cisimler.splice(i, 1);
+                }
+            }
+        }
 
-let itemImg = new Image();
-itemImg.src = 'cisim.png';
+        function oyunCiz() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(karakterImg, karakter.x, karakter.y, karakter.width, karakter.height);
+            for (let cisim of cisimler) {
+                ctx.drawImage(cisimImg, cisim.x, cisim.y, cisim.width, cisim.height);
+            }
+            ctx.fillStyle = 'black';
+            ctx.font = '24px Arial';
+            ctx.fillText('Skor: ' + skor, 20, 40);
+        }
 
-let character = {
-  x: canvas.width / 2 - 25,
-  y: canvas.height - 60,
-  width: 50,
-  height: 50
-};
+        function oyunDongusu() {
+            cisimleriGuncelle();
+            oyunCiz();
+            requestAnimationFrame(oyunDongusu);
+        }
 
-let items = [];
-const itemCount = 5;
-const itemSpeed = 3;
-let score = 0;
+        setInterval(yeniCisim, 1000);
 
-function spawnItems() {
-  for(let i=0; i<itemCount; i++) {
-    items.push({
-      x: Math.random() * (canvas.width - 30),
-      y: Math.random() * -600,
-      width: 30,
-      height: 30
-    });
-  }
-}
+        // Fare kontrolü
+        canvas.addEventListener('mousemove', (e) => {
+            karakter.x = e.clientX - karakter.width / 2;
+        });
 
-function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Dokunmatik kontrolü
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            karakter.x = touch.clientX - karakter.width / 2;
+        }, { passive: false });
 
-  // Hareket eden cisimler
-  items.forEach(item => {
-    item.y += itemSpeed;
-    if(item.y > canvas.height) {
-      item.y = Math.random() * -600;
-      item.x = Math.random() * (canvas.width - item.width);
-    }
-    ctx.drawImage(itemImg, item.x, item.y, item.width, item.height);
+        // Açılış ekranları
+        const overlay = document.getElementById('overlay');
+        const logo = document.getElementById('logo');
+        const letsgo = document.getElementById('letsgo');
 
-    // Çarpışma kontrolü
-    if(item.x < character.x + character.width &&
-       item.x + item.width > character.x &&
-       item.y < character.y + character.height &&
-       item.y + item.height > character.y) {
-      score++;
-      item.y = Math.random() * -600;
-      item.x = Math.random() * (canvas.width - item.width);
-    }
-  });
+        function baslat() {
+            overlay.style.opacity = 0;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                oyunDongusu();
+            }, 2000);
+        }
 
-  // Karakteri çiz
-  ctx.drawImage(charImg, character.x, character.y, character.width, character.height);
+        window.onload = () => {
+            logo.style.display = 'block';
+            setTimeout(() => {
+                logo.style.display = 'none';
+                letsgo.style.display = 'block';
+                setTimeout(() => {
+                    baslat();
+                }, 2000);
+            }, 2000);
+        };
 
-  // Skoru yaz
-  ctx.fillStyle = "black";
-  ctx.font = "24px Arial";
-  ctx.fillText("Skor: " + score, 10, 30);
-}
-
-// Fare hareketi ile karakter kontrolü
-canvas.addEventListener('mousemove', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  character.x = e.clientX - rect.left - character.width / 2;
-  if(character.x < 0) character.x = 0;
-  if(character.x > canvas.width - character.width) character.x = canvas.width - character.width;
-});
-
-// Mobil dokunmatik için tıklama hareketi (karaktere tıklayınca ileri hareket ettiriyor)
-canvas.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const touchX = e.touches[0].clientX - rect.left;
-  character.x = touchX - character.width / 2;
-});
-
-function gameLoop() {
-  update();
-  requestAnimationFrame(gameLoop);
-}
-
-// Açılış ekranı 3 saniye sonra gizle
-window.onload = () => {
-  spawnItems();
-  setTimeout(() => {
-    document.getElementById('overlay').style.opacity = 0;
-    setTimeout(() => {
-      document.getElementById('overlay').style.display = 'none';
-      gameLoop();
-    }, 2000);
-  }, 3000);
-};
-</script>
-
+        // Canvas boyutunu pencereye göre ayarla
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            karakter.y = canvas.height - 100;
+        });
+    </script>
 </body>
 </html>
