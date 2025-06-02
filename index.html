@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>RTEpurna</title>
     <style>
         body {
             margin: 0;
             background-color: white;
             overflow: hidden;
-            font-family: Arial, sans-serif;
         }
         canvas {
             display: block;
-            background: #f0f0f0;
         }
         #overlay {
             position: absolute;
@@ -22,108 +20,51 @@
             background-color: black;
             color: white;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 48px;
+            font-family: Arial, sans-serif;
             opacity: 1;
             transition: opacity 2s;
             z-index: 10;
         }
-        #logo {
-            max-width: 80%;
-            margin-bottom: 30px;
-        }
-        #letsgo {
-            display: none;
-            text-align: center;
-            line-height: 1.3;
-        }
-        #usernameInput {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 15;
-            font-size: 18px;
-            padding: 5px;
-        }
-        #scoreboard {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.8);
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 18px;
-            color: #333;
-            max-width: 200px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 15;
-        }
-        #scoreboard h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
-    <input type="text" id="usernameInput" placeholder="Kullanıcı adını gir" maxlength="15" />
-    <div id="scoreboard">
-        <h3>Skor Tablosu</h3>
-        <ul id="scoreList"></ul>
-    </div>
-
     <div id="overlay">
-        <img id="logo" src="logo.png" alt="Logo" style="display:none;">
-        <div id="letsgo">128 Milyar Dolar<br>Hadi Let's Go!</div>
+        <img id="logo" src="logo.png" style="max-width: 80%; display: none;">
+        <div id="letsgo" style="display: none;">128 Milyar Dolar<br>Hadi Let's Go!</div>
     </div>
-
     <canvas id="gameCanvas"></canvas>
-
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-
-        // Karakter boyutları küçültüldü
-        let karakter = { x: width / 2, y: height - 120, width: 40, height: 40 };
-
+        let karakter = { x: canvas.width / 2, y: canvas.height - 100, width: 50, height: 50 };
         let skor = 0;
         let cisimler = [];
-        let oyunBasladi = false;
 
         const karakterImg = new Image();
         karakterImg.src = 'karakter.png';
-
         const cisimImg = new Image();
         cisimImg.src = 'cisim.png';
 
-        // Kullanıcı adı alıyoruz
-        const usernameInput = document.getElementById('usernameInput');
-
-        // Skor tablosu için liste
-        const scoreList = document.getElementById('scoreList');
-
-        // Cisimlerin daha yavaş düşmesi için hız ayarı
         function yeniCisim() {
             cisimler.push({
-                x: Math.random() * (width - 30),
+                x: Math.random() * (canvas.width - 30),
                 y: 0,
                 width: 30,
                 height: 30,
-                speed: 1 + Math.random() * 1.5  // Daha yavaş hızlar
+                speed: 3 + Math.random() * 3
             });
         }
 
         function cisimleriGuncelle() {
             for (let i = cisimler.length - 1; i >= 0; i--) {
                 cisimler[i].y += cisimler[i].speed;
-                if (cisimler[i].y > height) {
+                if (cisimler[i].y > canvas.height) {
                     cisimler.splice(i, 1);
                 } else if (cisimler[i].x < karakter.x + karakter.width &&
                            cisimler[i].x + cisimler[i].width > karakter.x &&
@@ -131,13 +72,12 @@
                            cisimler[i].y + cisimler[i].height > karakter.y) {
                     skor++;
                     cisimler.splice(i, 1);
-                    skorGuncelle();
                 }
             }
         }
 
         function oyunCiz() {
-            ctx.clearRect(0, 0, width, height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(karakterImg, karakter.x, karakter.y, karakter.width, karakter.height);
             for (let cisim of cisimler) {
                 ctx.drawImage(cisimImg, cisim.x, cisim.y, cisim.width, cisim.height);
@@ -147,36 +87,27 @@
             ctx.fillText('Skor: ' + skor, 20, 40);
         }
 
-      let sonZaman = performance.now();
-
-function oyunDongusu() {
-    if (!oyunBasladi) return;
-
-    const suankiZaman = performance.now();
-    const delta = (suankiZaman - sonZaman) / 1000; // saniye cinsinden fark
-    sonZaman = suankiZaman;
-
-    // cisimleri delta zamanına göre güncelle
-    for (let i = cisimler.length - 1; i >= 0; i--) {
-        cisimler[i].y += cisimler[i].speed * 60 * delta;  // 60 çarpanı fps bazlı ayar için
-        if (cisimler[i].y > height) {
-            cisimler.splice(i, 1);
-        } else if (cisimler[i].x < karakter.x + karakter.width &&
-                   cisimler[i].x + cisimler[i].width > karakter.x &&
-                   cisimler[i].y < karakter.y + karakter.height &&
-                   cisimler[i].y + cisimler[i].height > karakter.y) {
-            skor++;
-            cisimler.splice(i, 1);
-            skorGuncelle();
+        function oyunDongusu() {
+            cisimleriGuncelle();
+            oyunCiz();
+            requestAnimationFrame(oyunDongusu);
         }
-    }
 
-    oyunCiz();
-    requestAnimationFrame(oyunDongusu);
-}
+        setInterval(yeniCisim, 1000);
 
+        // Fare kontrolü
+        canvas.addEventListener('mousemove', (e) => {
+            karakter.x = e.clientX - karakter.width / 2;
+        });
 
-        // Overlay ve açılış ekranları
+        // Dokunmatik kontrolü
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            karakter.x = touch.clientX - karakter.width / 2;
+        }, { passive: false });
+
+        // Açılış ekranları
         const overlay = document.getElementById('overlay');
         const logo = document.getElementById('logo');
         const letsgo = document.getElementById('letsgo');
@@ -185,42 +116,12 @@ function oyunDongusu() {
             overlay.style.opacity = 0;
             setTimeout(() => {
                 overlay.style.display = 'none';
-                oyunBasladi = true;
-                setInterval(yeniCisim, 1000);
                 oyunDongusu();
             }, 2000);
         }
 
-        // Skorları localStorage'dan alıp listele
-        function skorListeGetir() {
-            const skorlar = JSON.parse(localStorage.getItem('skorlar') || '[]');
-            scoreList.innerHTML = '';
-            skorlar.sort((a,b) => b.score - a.score);
-            for (let i = 0; i < Math.min(skorlar.length, 10); i++) {
-                let li = document.createElement('li');
-                li.textContent = `${skorlar[i].name}: ${skorlar[i].score}`;
-                scoreList.appendChild(li);
-            }
-        }
-
-        // Skor güncelleme ve kaydetme
-        function skorGuncelle() {
-            skorListeGetir();
-        }
-
-        // Kullanıcı adı ve skor kaydet
-        function skorKaydet() {
-            if (!usernameInput.value) return;
-            let skorlar = JSON.parse(localStorage.getItem('skorlar') || '[]');
-            skorlar.push({name: usernameInput.value, score: skor});
-            localStorage.setItem('skorlar', JSON.stringify(skorlar));
-            skorListeGetir();
-        }
-
         window.onload = () => {
             logo.style.display = 'block';
-            usernameInput.focus();
-
             setTimeout(() => {
                 logo.style.display = 'none';
                 letsgo.style.display = 'block';
@@ -228,22 +129,13 @@ function oyunDongusu() {
                     baslat();
                 }, 2000);
             }, 2000);
-
-            skorListeGetir();
         };
 
-        // Pencere yeniden boyutlandığında canvas ayarları
+        // Canvas boyutunu pencereye göre ayarla
         window.addEventListener('resize', () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            karakter.y = height - 120;
-        });
-
-        // Sayfa kapanırken skor kaydet
-        window.addEventListener('beforeunload', () => {
-            skorKaydet();
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            karakter.y = canvas.height - 100;
         });
     </script>
 </body>
