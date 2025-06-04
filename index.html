@@ -8,6 +8,7 @@
             margin: 0;
             background-color: white;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         canvas {
             display: block;
@@ -23,37 +24,211 @@
             align-items: center;
             justify-content: center;
             font-size: 48px;
-            font-family: Arial, sans-serif;
             opacity: 1;
             transition: opacity 2s;
             z-index: 10;
+            flex-direction: column;
+        }
+        #authContainer {
+            position: absolute;
+            top: 20px; left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 20;
+            max-width: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        #leaderboard {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 300px;
+            z-index: 20;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        #leaderboard h3 {
+            margin-top: 0;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            padding: 10px 15px;
+            margin-top: 10px;
+            width: 100%;
+            font-size: 16px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        a {
+            cursor: pointer;
+            color: #007BFF;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        #registerMsg, #loginMsg {
+            margin-top: 10px;
+            height: 18px;
         }
     </style>
 </head>
 <body>
     <div id="overlay">
-        <img id="logo" src="logo.png" style="max-width: 820%; display: none;">
+        <img id="logo" src="logo.png" style="max-width: 100%; display: none;">
         <div id="letsgo" style="display: none;">Hedef 128 Milyar Dolar<br>Hadi Let's Go!</div>
     </div>
     <canvas id="gameCanvas"></canvas>
+
+    <!-- Kullanıcı Kayıt/Giriş -->
+    <div id="authContainer">
+        <div id="registerSection">
+            <h3>Kayıt Ol</h3>
+            <input type="text" id="regUsername" placeholder="Kullanıcı Adı" /><br><br>
+            <input type="password" id="regPassword" placeholder="Şifre" /><br><br>
+            <button id="registerBtn">Kayıt Ol</button>
+            <p>Zaten hesabın var mı? <a id="showLogin">Giriş Yap</a></p>
+            <div id="registerMsg" style="color:red;"></div>
+        </div>
+
+        <div id="loginSection" style="display:none;">
+            <h3>Giriş Yap</h3>
+            <input type="text" id="loginUsername" placeholder="Kullanıcı Adı" /><br><br>
+            <input type="password" id="loginPassword" placeholder="Şifre" /><br><br>
+            <button id="loginBtn">Giriş Yap</button>
+            <p>Hesabın yok mu? <a id="showRegister">Kayıt Ol</a></p>
+            <div id="loginMsg" style="color:red;"></div>
+        </div>
+
+        <div id="welcomeUser" style="display:none;">
+            <h3>Hoşgeldin, <span id="currentUser"></span>!</h3>
+            <button id="logoutBtn">Çıkış Yap</button>
+        </div>
+    </div>
+
+    <!-- Skor Tablosu -->
+    <div id="leaderboard">
+        <h3>En İyi 10 Skor</h3>
+        <ol id="scoreList"></ol>
+    </div>
+
     <script>
+        // Oyun canvas ve context
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // Karakter ve değişkenler
         let karakter = { x: canvas.width / 2, y: canvas.height - 220, width: 120, height: 150 };
         let skor = 0;
         let cisimler = [];
+        let oyunAktif = false;
+        let oyunInterval;
+        let yeniCisimInterval;
 
+        // Görseller
         const karakterImg = new Image();
         karakterImg.src = 'karakter.png';
         const cisimImg = new Image();
         cisimImg.src = 'cisim.png';
 
+        // DOM elementleri
+        const overlay = document.getElementById('overlay');
+        const logo = document.getElementById('logo');
+        const letsgo = document.getElementById('letsgo');
+
+        const registerSection = document.getElementById('registerSection');
+        const loginSection = document.getElementById('loginSection');
+        const welcomeUser = document.getElementById('welcomeUser');
+        const currentUserSpan = document.getElementById('currentUser');
+
+        const regUsername = document.getElementById('regUsername');
+        const regPassword = document.getElementById('regPassword');
+        const registerBtn = document.getElementById('registerBtn');
+        const registerMsg = document.getElementById('registerMsg');
+
+        const loginUsername = document.getElementById('loginUsername');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginMsg = document.getElementById('loginMsg');
+
+        const showLoginLink = document.getElementById('showLogin');
+        const showRegisterLink = document.getElementById('showRegister');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const scoreList = document.getElementById('scoreList');
+
+        // localStorage'dan kullanıcılar ve skorlar
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '{}');
+        }
+        function setUsers(users) {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        function getScores() {
+            return JSON.parse(localStorage.getItem('scores') || '[]');
+        }
+        function setScores(scores) {
+            localStorage.setItem('scores', JSON.stringify(scores));
+        }
+
+        // Kullanıcı işlemleri
+        function registerUser(username, password) {
+            let users = getUsers();
+            if (!username || !password) {
+                return "Lütfen kullanıcı adı ve şifre girin.";
+            }
+            if (users[username]) {
+                return "Bu kullanıcı adı zaten alınmış.";
+            }
+            users[username] = { password: password };
+            setUsers(users);
+            return null; // hata yok
+        }
+        function loginUser(username, password) {
+            let users = getUsers();
+            if (!users[username]) {
+                return "Kullanıcı bulunamadı.";
+            }
+            if (users[username].password !== password) {
+                return "Şifre yanlış.";
+            }
+            return null; // başarı
+        }
+
+        // Skorları göster
+        function guncelleSkorTablosu() {
+            let scores = getScores();
+            // Skorları yüksekten düşüğe sırala
+            scores.sort((a, b) => b.score - a.score);
+            // En iyi 10'u göster
+            scoreList.innerHTML = '';
+            for (let i = 0; i < Math.min(10, scores.length); i++) {
+                const s = scores[i];
+                let li = document.createElement('li');
+                li.textContent = `${s.username}: ${s.score}`;
+                scoreList.appendChild(li);
+            }
+        }
+
+        // Oyun döngüsü fonksiyonları
         function yeniCisim() {
             cisimler.push({
-                x: Math.random() * (canvas.width - 30),
+                x: Math.random() * (canvas.width - 60),
                 y: 0,
                 width: 60,
                 height: 60,
@@ -88,55 +263,135 @@
         }
 
         function oyunDongusu() {
+            if (!oyunAktif) return;
             cisimleriGuncelle();
             oyunCiz();
             requestAnimationFrame(oyunDongusu);
         }
 
-        setInterval(yeniCisim, 1000);
-
-        // Fare kontrolü
-        canvas.addEventListener('mousemove', (e) => {
-            karakter.x = e.clientX - karakter.width / 2;
-        });
-
-        // Dokunmatik kontrolü
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            karakter.x = touch.clientX - karakter.width / 2;
-        }, { passive: false });
-
-        // Açılış ekranları
-        const overlay = document.getElementById('overlay');
-        const logo = document.getElementById('logo');
-        const letsgo = document.getElementById('letsgo');
-
+        // Oyun başlat
         function baslat() {
+            skor = 0;
+            cisimler = [];
+            oyunAktif = true;
             overlay.style.opacity = 0;
             setTimeout(() => {
                 overlay.style.display = 'none';
                 oyunDongusu();
             }, 2000);
+
+            // Cisim üretimini başlat
+            if (yeniCisimInterval) clearInterval(yeniCisimInterval);
+            yeniCisimInterval = setInterval(yeniCisim, 1000);
         }
 
-        window.onload = () => {
+        // Oyun durdur (oyuncu çıkış veya oyun bittiğinde)
+        function durdur(username) {
+            oyunAktif = false;
+            clearInterval(yeniCisimInterval);
+
+            // Skoru kaydet
+            if (username && skor > 0) {
+                let scores = getScores();
+                scores.push({ username: username, score: skor });
+                setScores(scores);
+                guncelleSkorTablosu();
+            }
+
+            overlay.style.display = 'flex';
+            overlay.style.opacity = 1;
             logo.style.display = 'block';
-            setTimeout(() => {
-                logo.style.display = 'none';
-                letsgo.style.display = 'block';
-                setTimeout(() => {
-                    baslat();
-                }, 2000);
-            }, 2000);
+            letsgo.style.display = 'none';
+
+            alert(`Oyun bitti! Skorunuz: ${skor}`);
+        }
+
+        // Mouse ve touch hareketleri oyun aktifse karakteri kontrol eder
+        canvas.addEventListener('mousemove', (e) => {
+            if (!oyunAktif) return;
+            karakter.x = e.clientX - karakter.width / 2;
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (!oyunAktif) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            karakter.x = touch.clientX - karakter.width / 2;
+        }, { passive: false });
+
+        // Kullanıcı arayüzü - Kayıt
+        registerBtn.onclick = () => {
+            const username = regUsername.value.trim();
+            const password = regPassword.value.trim();
+            const hata = registerUser(username, password);
+            if (hata) {
+                registerMsg.textContent = hata;
+            } else {
+                registerMsg.style.color = 'green';
+                registerMsg.textContent = "Kayıt başarılı! Giriş yapabilirsiniz.";
+                regUsername.value = '';
+                regPassword.value = '';
+            }
+        };
+        showLoginLink.onclick = () => {
+            registerSection.style.display = 'none';
+            loginSection.style.display = 'block';
+            registerMsg.textContent = '';
+            loginMsg.textContent = '';
         };
 
-        // Canvas boyutunu pencereye göre ayarla
+        // Kullanıcı arayüzü - Giriş
+        loginBtn.onclick = () => {
+            const username = loginUsername.value.trim();
+            const password = loginPassword.value.trim();
+            const hata = loginUser(username, password);
+            if (hata) {
+                loginMsg.textContent = hata;
+            } else {
+                loginMsg.textContent = '';
+                loginSection.style.display = 'none';
+                welcomeUser.style.display = 'block';
+                currentUserSpan.textContent = username;
+                authContainer.style.display = 'none';
+                // Oyun başlat
+                baslat();
+                currentLoggedInUser = username;
+            }
+        };
+        showRegisterLink.onclick = () => {
+            loginSection.style.display = 'none';
+            registerSection.style.display = 'block';
+            loginMsg.textContent = '';
+            registerMsg.textContent = '';
+        };
+
+        // Çıkış yap
+        logoutBtn.onclick = () => {
+            durdur(currentLoggedInUser);
+            currentLoggedInUser = null;
+            welcomeUser.style.display = 'none';
+            authContainer.style.display = 'block';
+            loginSection.style.display = 'block';
+            loginUsername.value = '';
+            loginPassword.value = '';
+        };
+
+        // Canvas boyutu pencereye göre ayarla
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            karakter.y = canvas.height - 100;
+            karakter.y = canvas.height - 220;
         });
+
+        // Oyun başlamadan önce
+        overlay.style.opacity = 1;
+        logo.style.display = 'block';
+        letsgo.style.display = 'none';
+
+        // Skor tablosu başta güncelle
+        guncelleSkorTablosu();
+
+        // Global değişken login için
+        let currentLoggedInUser = null;
     </script>
 </body>
 </html>
