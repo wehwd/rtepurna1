@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>RTEpurna</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: white;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        #overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-family: Arial, sans-serif;
+            opacity: 1;
+            transition: opacity 2s;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <img id="logo" src="logo.png" style="max-width: 820%; display: none;">
+        <div id="letsgo" style="display: none;">Hedef 128 Milyar Dolar<br>Hadi Let's Go!</div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let karakter = { x: canvas.width / 2, y: canvas.height - 220, width: 120, height: 150 };
+        let skor = 0;
+        let cisimler = [];
+
+        const karakterImg = new Image();
+        karakterImg.src = 'karakter.png';
+        const cisimImg = new Image();
+        cisimImg.src = 'cisim.png';
+
+        function yeniCisim() {
+            cisimler.push({
+                x: Math.random() * (canvas.width - 30),
+                y: 0,
+                width: 60,
+                height: 60,
+                speed: 2 + Math.random() * 2
+            });
+        }
+
+        function cisimleriGuncelle() {
+            for (let i = cisimler.length - 1; i >= 0; i--) {
+                cisimler[i].y += cisimler[i].speed;
+                if (cisimler[i].y > canvas.height) {
+                    cisimler.splice(i, 1);
+                } else if (cisimler[i].x < karakter.x + karakter.width &&
+                           cisimler[i].x + cisimler[i].width > karakter.x &&
+                           cisimler[i].y < karakter.y + karakter.height &&
+                           cisimler[i].y + cisimler[i].height > karakter.y) {
+                    skor++;
+                    cisimler.splice(i, 1);
+                }
+            }
+        }
+
+        function oyunCiz() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(karakterImg, karakter.x, karakter.y, karakter.width, karakter.height);
+            for (let cisim of cisimler) {
+                ctx.drawImage(cisimImg, cisim.x, cisim.y, cisim.width, cisim.height);
+            }
+            ctx.fillStyle = 'black';
+            ctx.font = '24px Arial';
+            ctx.fillText('Skor: ' + skor, 20, 40);
+        }
+
+        function oyunDongusu() {
+            cisimleriGuncelle();
+            oyunCiz();
+            requestAnimationFrame(oyunDongusu);
+        }
+
+        setInterval(yeniCisim, 1000);
+
+        // Fare kontrolü
+        canvas.addEventListener('mousemove', (e) => {
+            karakter.x = e.clientX - karakter.width / 2;
+        });
+
+        // Dokunmatik kontrolü
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            karakter.x = touch.clientX - karakter.width / 2;
+        }, { passive: false });
+
+        // Açılış ekranları
+        const overlay = document.getElementById('overlay');
+        const logo = document.getElementById('logo');
+        const letsgo = document.getElementById('letsgo');
+
+        function baslat() {
+            overlay.style.opacity = 0;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                oyunDongusu();
+            }, 2000);
+        }
+
+        window.onload = () => {
+            logo.style.display = 'block';
+            setTimeout(() => {
+                logo.style.display = 'none';
+                letsgo.style.display = 'block';
+                setTimeout(() => {
+                    baslat();
+                }, 2000);
+            }, 2000);
+        };
+
+        // Canvas boyutunu pencereye göre ayarla
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            karakter.y = canvas.height - 100;
+        });
+    </script>
+</body>
+</html>
