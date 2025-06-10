@@ -88,10 +88,14 @@
 </head>
 <body>
     <div id="overlay">
-        <img id="logo" src="logo.png" style="max-width: 100%; display: none;">
-        <div id="letsgo" style="display: none;">Hedef 128 Milyar Dolar<br>Hadi Let's Go!</div>
+    <img id="logo" src="logo.png" style="max-width: 100%; display: none;">
+    <div id="letsgo" style="display: none;">Hedef 128 Milyar Dolar<br>Hadi Let's Go!</div>
+    <video id="endVideo" style="display:none; max-width: 80%; max-height: 80%;" controls></video>
+</div>
+
     </div>
     <canvas id="gameCanvas"></canvas>
+<video id="endVideo" style="display:none; max-width: 80%; max-height: 80%;" controls></video>
 
     <!-- Kullanıcı Kayıt/Giriş -->
     <div id="authContainer">
@@ -213,7 +217,7 @@
         // Skorları göster
         function guncelleSkorTablosu() {
             let scores = getScores();
-            // Skorları yüksekten düşüğe sırala
+        // Skorları yüksekten düşüğe sırala
             scores.sort((a, b) => b.score - a.score);
             // En iyi 10'u göster
             scoreList.innerHTML = '';
@@ -245,8 +249,30 @@
                            cisimler[i].x + cisimler[i].width > karakter.x &&
                            cisimler[i].y < karakter.y + karakter.height &&
                            cisimler[i].y + cisimler[i].height > karakter.y) {
-                    skor++;
-                    cisimler.splice(i, 1);
+                    function durdur(username) {
+    oyunAktif = false;
+    clearInterval(yeniCisimInterval);
+
+    // Skoru kaydet
+    if (username && skor > 0) {
+        let scores = getScores();
+        scores.push({ username: username, score: skor });
+        setScores(scores);
+        guncelleSkorTablosu();
+    }
+
+    // Eğer video oynuyorsa alert gösterme
+    const endVideo = document.getElementById('endVideo');
+    if (endVideo.style.display !== 'block') {
+        overlay.style.display = 'flex';
+        overlay.style.opacity = 1;
+        logo.style.display = 'block';
+        letsgo.style.display = 'none';
+
+        alert(`Oyun bitti! Skorunuz: ${skor}`);
+    }
+}
+
                 }
             }
         }
